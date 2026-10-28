@@ -1,0 +1,24 @@
+# 工具数据与项目记忆，不进版本库
+.workbuddy-ai/
+.workbuddy/
+*.genie
+
+# 依赖与缓存
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+
+# 系统杂项
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 日志与临时文件
+*.log
+~$*
+*.tmp
+.tmp/
+
+# 分发用的图片（二维码等），由脚本生成，链接变了就重做，不入库
+share/
