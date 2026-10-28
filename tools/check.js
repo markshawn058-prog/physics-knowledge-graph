@@ -33,7 +33,7 @@ const T = (name, cond, extra = '') => (cond ? ok : bad).push(name + (extra ? ' �
   const base = await page.evaluate(() => ({
     n: kg.NODES.length, canvas: document.querySelectorAll('canvas').length
   }));
-  T('节点数 92', base.n === 92, base.n);
+  T('节点数 149', base.n === 149, base.n);
   T('canvas 已挂载', base.canvas === 1);
 
   /* 2. 目录覆盖：每个节点都在目录里，目录里也没有野节点 */
@@ -51,31 +51,41 @@ const T = (name, cond, extra = '') => (cond ? ok : bad).push(name + (extra ? ' �
   T('无遗漏知识点', cover.lost.length === 0, cover.lost.join(','));
   T('目录覆盖数与节点数一致', cover.inToc === cover.nodes, `${cover.inToc}/${cover.nodes}`);
 
-  /* 3. 点 3D 节点（投影坐标后真点） */
-  let hit = 0;
-  for (const nm of ['电场', '洛伦兹力', '牛顿第二定律', '双缝干涉', '核反应方程']) {
+  /* 3. 点 3D 节点（投影坐标后真点）
+     注意两点，否则会假失败：
+     ① 每次点击后相机有 ~600ms 的飞行动画，必须等它停稳再取下一个投影坐标，
+        否则拿到的是动画中途的旧坐标；
+     ② 投影点可能落在左侧目录或右侧详情面板上，那种点根本到不了 canvas，直接跳过。 */
+  let hit = 0, tried = 0;
+  for (const nm of ['静电场', '洛伦兹力', '牛顿第二定律', '双缝干涉', '核反应方程']) {
+    await page.evaluate(() => kg.clearSel && kg.clearSel());
+    await page.waitForTimeout(750);
     const q = await page.evaluate(n => {
       const s = kg.project(kg.P[kg.NODES.indexOf(n)]);
-      return s && s.x > 0 && s.x < 1280 && s.y > 60 ? { x: s.x, y: s.y } : null;
+      if (!s) return null;
+      const el = document.elementFromPoint(s.x, s.y);
+      if (!el || el.tagName !== 'CANVAS') return null;    // 被面板挡住
+      return { x: s.x, y: s.y };
     }, nm);
     if (!q) continue;
+    tried++;
     await page.mouse.click(q.x, q.y);
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(700);
     if (await h3() === nm) hit++;
   }
-  T('点 3D 节点可选中', hit >= 4, `${hit}/5`);
+  T('点 3D 节点可选中', tried >= 3 && hit === tried, `${hit}/${tried}`);
 
   /* 4. 拖拽不误选 */
-  await page.evaluate(() => kg.select('电场'));
+  await page.evaluate(() => kg.select('静电场'));
   await page.waitForTimeout(800);
   const q = await page.evaluate(() => {
-    const s = kg.project(kg.P[kg.NODES.indexOf('电场')]);
+    const s = kg.project(kg.P[kg.NODES.indexOf('静电场')]);
     return s && { x: s.x, y: s.y };
   });
   await page.mouse.move(q.x, q.y); await page.mouse.down();
   await page.mouse.move(q.x + 45, q.y + 12, { steps: 8 }); await page.mouse.up();
   await page.waitForTimeout(500);
-  T('拖拽不误选', (await h3()) === '电场', await h3());
+  T('拖拽不误选', (await h3()) === '静电场', await h3());
 
   /* 5. 点空白取消 */
   const blank = await page.evaluate(() => {
