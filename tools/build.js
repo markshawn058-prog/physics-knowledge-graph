@@ -83,6 +83,17 @@ for (const f of files) {
         if (!x.t) errs.push(`${tag}：缺考法名`);
         if (!x.f) errs.push(`${tag}：缺「考查形式」`);
         if (!x.k) errs.push(`${tag}：缺「破题关键」`);
+        if (x.v !== undefined) {
+          if (!Array.isArray(x.v) || !x.v.length) errs.push(`${tag}：「具体问法」必须是非空数组`);
+          else {
+            if (x.v.length > 5) errs.push(`${tag}：「具体问法」最多 5 条，现有 ${x.v.length} 条`);
+            x.v.forEach((s, j) => {
+              if (!s || !s.trim()) errs.push(`${tag} 问法${j + 1}：为空`);
+              else if (s.length > 44) errs.push(`${tag} 问法${j + 1}：超过 44 字（${s.length}）`);
+            });
+            if (new Set(x.v).size !== x.v.length) errs.push(`${tag}：「具体问法」有重复条目`);
+          }
+        }
         if (!Array.isArray(x.q) || !x.q.length) errs.push(`${tag}：没有例题`);
         (x.q || []).forEach((q, j) => {
           const t2 = `${tag} 例${j + 1}`;
